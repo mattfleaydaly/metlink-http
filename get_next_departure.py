@@ -147,7 +147,9 @@ def get_next_departure_for_platform(station_name, platform):
 
     departures = list(map(transform, departures))
 
-    platform_departures = list(filter(lambda departure: departure['platform_number'] == platform, departures))
+    platform_departures = departures
+    if platform != 'all':
+        platform_departures = list(filter(lambda departure: departure['platform_number'] == platform, departures))
     rrb_departures = list(filter(lambda departure: departure['platform_number'] == 'RRB', departures))
 
     platform_departures.sort(key=lambda departure: date(departure['scheduled_departure_utc']))
@@ -191,7 +193,7 @@ def get_next_departure_for_platform(station_name, platform):
     else:
         raise Exception('NO TRAINS DEPART_FROM THIS PLATFORM')
 
-def generate_pids_string(station_name, platform):
+def get_pids_data(station_name, platform):
     next_departure = None
     try:
         next_departure = get_next_departure_for_platform(station_name, platform)
@@ -231,4 +233,10 @@ def generate_pids_string(station_name, platform):
         pids_string += '|H0^_  {}'.format(stopping_pattern)
 
     msg = DisplayMessage.from_str(pids_string).to_bytes()
-    return fix_right_justification(msg)
+    return {
+        "data": fix_right_justification(msg),
+        "scheduled": scheduled_departure,
+        "destination": destination,
+        "actual": time_to_departure,
+        "pattern": stopping_pattern
+    }

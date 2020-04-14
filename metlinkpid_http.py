@@ -27,7 +27,7 @@ from metlinkpid import PID
 from waitress import serve
 from time import sleep
 
-from get_next_departure import generate_pids_string
+from get_next_departure import get_pids_data
 
 PING_INTERNAL_SEC = 10
 
@@ -69,6 +69,7 @@ def main():
     current_platform = None
 
     live_thread = None
+    current_data = {}
 
     try:
         pid = PID.for_device(args['--serial'])
@@ -115,6 +116,10 @@ def main():
                 print('metlinkpid-http: {}'.format(e), file=stderr)
         return jsonify({'message': 'ok', 'error': None})
 
+    @app.route("/get-data")
+    def get_data():
+        return jsonify(current_data)
+
     ping_event = Event()
 
     def ping():
@@ -129,9 +134,12 @@ def main():
 
     def send_live_data():
         last_string = ''
-        global current_station, current_platform, live_thread
+        global current_station, current_platform, live_thread, current_data
         while True:
-            pids_string = generate_pids_string(current_station, current_platform)
+            data = get_pids_data(current_station, current_platform)
+            pids_string = data['data']
+            current_data = data
+
             if last_string != pids_string:
                 with pid_lock:
                     try:
