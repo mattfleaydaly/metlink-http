@@ -63,6 +63,7 @@ def main():
 
     @app.route("/enable-live")
     def enable_live():
+        global current_station, current_platform, live_thread
         current_station = request.args.get('station')
         current_platform = request.args.get('platform')
         if live_thread:
@@ -73,6 +74,7 @@ def main():
 
     @app.route("/disable-live")
     def disable_live():
+        global live_thread
         if live_thread:
             live_thread.stop()
 
