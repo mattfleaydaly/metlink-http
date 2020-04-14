@@ -17,7 +17,7 @@ Full documentation online at:
   https://github.com/Lx/python-metlinkpid-http
 """
 
-from sys import stderr
+from sys import stderr, settrace
 from threading import Lock, Event, Thread
 from urllib.parse import unquote_plus
 
@@ -25,11 +25,41 @@ from envopt import envopt
 from flask import Flask, request, jsonify
 from metlinkpid import PID
 from waitress import serve
+from time import sleep
 
 from get_next_departure import generate_pids_string
 
 PING_INTERNAL_SEC = 10
 
+class thread_with_trace(Thread):
+  def __init__(self, *args, **keywords):
+    Thread.__init__(self, *args, **keywords)
+    self.killed = False
+
+  def start(self):
+    self.__run_backup = self.run
+    self.run = self.__run
+    Thread.start(self)
+
+  def __run(self):
+    settrace(self.globaltrace)
+    self.__run_backup()
+    self.run = self.__run_backup
+
+  def globaltrace(self, frame, event, arg):
+    if event == 'call':
+      return self.localtrace
+    else:
+      return None
+
+  def localtrace(self, frame, event, arg):
+    if self.killed:
+      if event == 'line':
+        raise SystemExit()
+    return self.localtrace
+
+  def kill(self):
+    self.killed = True
 
 def main():
     global current_station, current_platform, live_thread
@@ -37,14 +67,13 @@ def main():
 
     current_station = None
     current_platform = None
-    last_string = None
 
     live_thread = None
 
-    try:
-        pid = PID.for_device(args['--serial'])
-    except Exception as e:
-        exit('metlinkpid-http: {}'.format(e))
+    # try:
+    #     pid = PID.for_device(args['--serial'])
+    # except Exception as e:
+    #     exit('metlinkpid-http: {}'.format(e))
 
     pid_lock = Lock()
 
@@ -67,9 +96,8 @@ def main():
         global current_station, current_platform, live_thread
         current_station = request.args.get('station')
         current_platform = request.args.get('platform')
-        if live_thread:
-            live_thread.stop()
-        live_thread = Thread(target=send_live_data)
+        disable_live()
+        live_thread = thread_with_trace(target=send_live_data)
         live_thread.start()
         return jsonify({'message': 'ok', 'error': None})
 
@@ -78,7 +106,7 @@ def main():
     def disable_live():
         global live_thread
         if live_thread:
-            live_thread.stop()
+            live_thread.kill()
         return jsonify({'message': 'ok', 'error': None})
 
     ping_event = Event()
@@ -94,7 +122,8 @@ def main():
                 break
 
     def send_live_data():
-        global current_station, current_platform, last_string, live_thread
+        last_string = ''
+        global current_station, current_platform, live_thread
         while True:
             pids_string = generate_pids_string(current_station, current_platform)
             if last_string != pids_string:
@@ -106,7 +135,7 @@ def main():
                 last_string = pids_string
             else:
                 print('Nothing to do, skipping')
-            time.sleep(30)
+            sleep(30)
 
 
     Thread(target=ping).start()
