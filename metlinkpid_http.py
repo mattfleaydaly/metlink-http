@@ -94,7 +94,7 @@ def main():
                 break
 
     def send_live_data():
-        global current_station, current_platform, live_thread
+        global current_station, current_platform, last_string, live_thread
         while True:
             pids_string = generate_pids_string(current_station, current_platform)
             if last_string != pids_string:
