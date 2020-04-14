@@ -107,6 +107,12 @@ def main():
         global live_thread
         if live_thread:
             live_thread.kill()
+
+        with pid_lock:
+            try:
+                pid.send('  _  ')
+            except Exception as e:
+                print('metlinkpid-http: {}'.format(e), file=stderr)
         return jsonify({'message': 'ok', 'error': None})
 
     ping_event = Event()
