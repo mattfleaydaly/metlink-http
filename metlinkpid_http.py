@@ -126,6 +126,7 @@ def main():
 
     @app.route("/get-data")
     def get_data():
+        global current_data
         return jsonify(current_data)
 
     @app.route("/get-version")
@@ -153,6 +154,7 @@ def main():
         while True:
             data = get_pids_data(current_station, current_platform)
             pids_string = data['data']
+            del data['data']
             current_data = data
 
             if last_string != pids_string:
