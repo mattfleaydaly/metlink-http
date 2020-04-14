@@ -29,7 +29,15 @@ from time import sleep
 
 from get_next_departure import get_pids_data
 
+import git
+from os import getcwd
+
 PING_INTERNAL_SEC = 10
+
+repo = git.Repo(getcwd())
+master = repo.head.reference
+current_commit = master.commit.hexsha[0:8]
+current_message = master.commit.message
 
 class thread_with_trace(Thread):
   def __init__(self, *args, **keywords):
@@ -119,6 +127,13 @@ def main():
     @app.route("/get-data")
     def get_data():
         return jsonify(current_data)
+
+    @app.route("/get-version")
+    def get_data():
+        return jsonify({
+            'hash': current_commit,
+            'msg': current_message
+        })
 
     ping_event = Event()
 

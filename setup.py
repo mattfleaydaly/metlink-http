@@ -24,7 +24,8 @@ setuptools.setup(
         'envopt~=0.2.0',
         'waitress~=1.3.0',
         'python-dateutil~=2.8.1',
-        'requests~=2.22.0'
+        'requests~=2.22.0',
+        'git-python~=1.0.3'
     ],
     entry_points={
         'console_scripts': [
