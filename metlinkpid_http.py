@@ -71,6 +71,7 @@ def main():
             live_thread.stop()
         live_thread = Thread(target=send_live_data)
         live_thread.start()
+        return jsonify({'message': 'ok', 'error': None})
 
 
     @app.route("/disable-live")
@@ -78,6 +79,7 @@ def main():
         global live_thread
         if live_thread:
             live_thread.stop()
+        return jsonify({'message': 'ok', 'error': None})
 
     ping_event = Event()
 
@@ -92,6 +94,7 @@ def main():
                 break
 
     def send_live_data():
+        global current_station, current_platform, live_thread
         while True:
             pids_string = generate_pids_string(current_station, current_platform)
             if last_string != pids_string:
