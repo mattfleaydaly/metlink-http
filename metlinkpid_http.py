@@ -32,6 +32,7 @@ PING_INTERNAL_SEC = 10
 
 
 def main():
+    global current_station, current_platform, live_thread
     args = envopt(__doc__, prefix='METLINKPID_')
 
     current_station = None
