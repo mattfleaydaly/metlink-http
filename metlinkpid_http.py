@@ -26,11 +26,19 @@ from flask import Flask, request, jsonify
 from metlinkpid import PID
 from waitress import serve
 
+from get_next_departure import generate_pids_string
+
 PING_INTERNAL_SEC = 10
 
 
 def main():
     args = envopt(__doc__, prefix='METLINKPID_')
+
+    current_station = None
+    current_platform = None
+    last_string = None
+
+    live_thread = None
 
     try:
         pid = PID.for_device(args['--serial'])
@@ -52,6 +60,21 @@ def main():
             json['error'] = str(e)
         return jsonify(json)
 
+    @app.route("/enable-live")
+    def enable_live():
+        current_station = request.args.get('station')
+        current_platform = request.args.get('platform')
+        if live_thread:
+            live_thread.stop()
+        live_thread = Thread(target=send_live_data)
+        live_thread.start()
+
+
+    @app.route("/disable-live")
+    def enable_live():
+        if live_thread:
+            live_thread.stop()
+
     ping_event = Event()
 
     def ping():
@@ -63,6 +86,21 @@ def main():
                     print('metlinkpid-http: {}'.format(e), file=stderr)
             if ping_event.wait(PING_INTERNAL_SEC):
                 break
+
+    def send_live_data():
+        while True:
+            pids_string = generate_pids_string(current_station, current_platform)
+            if last_string != pids_string:
+                with pid_lock:
+                    try:
+                        pid.send(pids_string)
+                    except Exception as e:
+                        print('metlinkpid-http: {}'.format(e), file=stderr)
+                last_string = pids_string
+            else:
+                print('Nothing to do, skipping')
+            time.sleep(30)
+
 
     Thread(target=ping).start()
     try:
