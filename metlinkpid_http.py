@@ -129,7 +129,7 @@ def main():
         return jsonify(current_data)
 
     @app.route("/get-version")
-    def get_data():
+    def get_version():
         return jsonify({
             'hash': current_commit,
             'msg': current_message
