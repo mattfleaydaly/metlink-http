@@ -51,6 +51,7 @@ def main():
 
     @app.route("/")
     def send_message():
+        disable_live()
         message = unquote_plus(request.query_string.decode('utf-8'))
         json = {'message': message, 'error': None}
         try:
@@ -71,7 +72,7 @@ def main():
 
 
     @app.route("/disable-live")
-    def enable_live():
+    def disable_live():
         if live_thread:
             live_thread.stop()
 
