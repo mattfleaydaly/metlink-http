@@ -70,10 +70,10 @@ def main():
 
     live_thread = None
 
-    # try:
-    #     pid = PID.for_device(args['--serial'])
-    # except Exception as e:
-    #     exit('metlinkpid-http: {}'.format(e))
+    try:
+        pid = PID.for_device(args['--serial'])
+    except Exception as e:
+        exit('metlinkpid-http: {}'.format(e))
 
     pid_lock = Lock()
 
