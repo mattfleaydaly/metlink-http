@@ -265,7 +265,7 @@ def get_next_departure_for_platform(station_name, platform):
 
         if generate_audio:
             time_parts = break_time(scheduled_departure_utc)
-            write_audio(platform, time_parts['hour'], time_parts['minute'], destination, stopping_pattern_audio)
+            write_audio(next_departure['platform_number'], time_parts['hour'], time_parts['minute'], destination, stopping_pattern_audio)
 
         if is_up and 'Parliament' in stopping_pattern and station_name not in city_loop_stations:
             destination = 'City Loop'
