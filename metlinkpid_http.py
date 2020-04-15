@@ -32,6 +32,8 @@ from get_next_departure import get_pids_data
 import git
 from os import getcwd
 
+import traceback
+
 PING_INTERNAL_SEC = 10
 
 repo = git.Repo(getcwd())
@@ -70,7 +72,7 @@ class thread_with_trace(Thread):
     self.killed = True
 
 def main():
-    global current_station, current_platform, live_thread
+    global current_station, current_platform, live_thread, current_data
     args = envopt(__doc__, prefix='METLINKPID_')
 
     current_station = None
@@ -82,7 +84,7 @@ def main():
     try:
         pid = PID.for_device(args['--serial'])
     except Exception as e:
-        exit('metlinkpid-http: {}'.format(e))
+        print('metlinkpid-http: {}'.format(e))
 
     pid_lock = Lock()
 

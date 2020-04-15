@@ -9,6 +9,8 @@ import os
 from metlinkpid import DisplayMessage, PID
 import wave
 
+import traceback
+
 __dirname = os.path.dirname(os.path.realpath(__file__))
 config = json.load(open(__dirname + '/config.json', 'r'))
 stations = json.load(open(__dirname + '/stations.json', 'r'))
@@ -28,6 +30,10 @@ city_loop_stations = [
 'Melbourne Central'
 ]
 
+
+class NoTrains(Exception):
+  def __init__(self, *args, **keywords):
+    Exception.__init__(self, *args, **keywords)
 
 def write_audio(platform, scheduled_hour, scheduled_minute, destination, stopping_pattern_audio):
     greeting = None
@@ -274,15 +280,15 @@ def get_next_departure_for_platform(station_name, platform):
         }
 
     elif len(rrb_departures):
-        raise Exception('NO TRAINS OPERATING_REPLACEMENT BUSES|H1^_HAVE BEEN ARRANGED')
+        raise NoTrains('NO TRAINS OPERATING_REPLACEMENT BUSES|H1^_HAVE BEEN ARRANGED')
     else:
-        raise Exception('NO TRAINS DEPART_FROM THIS PLATFORM')
+        raise NoTrains('NO TRAINS DEPART_FROM THIS PLATFORM')
 
 def get_pids_data(station_name, platform):
     next_departure = None
     try:
         next_departure = get_next_departure_for_platform(station_name, platform)
-    except Exception as e:
+    except NoTrains as e:
         data = str(e)
         first_page = data.split('|')[0]
         lines = first_page.split('_')
@@ -297,6 +303,7 @@ def get_pids_data(station_name, platform):
             "top": top,
             "bottom": bottom
         }
+
     scheduled_departure_utc = next_departure['scheduled_departure_utc']
     estimated_departure_utc = next_departure['estimated_departure_utc']
     destination = next_departure['destination']
