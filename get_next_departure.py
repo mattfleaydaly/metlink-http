@@ -64,7 +64,7 @@ def write_audio(platform, scheduled_hour, scheduled_minute, destination, stoppin
     ] + stopping_pattern_audio
 
     full_pattern = intro + service_data + [
-        'tone/pause2'
+        'tone/pause3'
     ] + service_data
 
     parts = []
@@ -283,7 +283,20 @@ def get_pids_data(station_name, platform):
     try:
         next_departure = get_next_departure_for_platform(station_name, platform)
     except Exception as e:
-        return str(e)
+        data = str(e)
+        first_page = data.split('|')[0]
+        lines = first_page.split('_')
+        top = lines[0]
+        bottom = None
+        if len(lines) == 2:
+            bottom = lines[1]
+            
+        return {
+            "data": data,
+            "type": "manual",
+            "top": top,
+            "bottom": "bottom"
+        }
     scheduled_departure_utc = next_departure['scheduled_departure_utc']
     estimated_departure_utc = next_departure['estimated_departure_utc']
     destination = next_departure['destination']
