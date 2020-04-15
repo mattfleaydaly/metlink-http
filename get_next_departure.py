@@ -290,12 +290,12 @@ def get_pids_data(station_name, platform):
         bottom = None
         if len(lines) == 2:
             bottom = lines[1]
-            
+
         return {
             "data": data,
             "type": "manual",
             "top": top,
-            "bottom": "bottom"
+            "bottom": bottom
         }
     scheduled_departure_utc = next_departure['scheduled_departure_utc']
     estimated_departure_utc = next_departure['estimated_departure_utc']
