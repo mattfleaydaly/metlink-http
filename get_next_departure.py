@@ -7,13 +7,17 @@ import json
 from generate_stopping_pattern import generate_stopping_pattern
 import os
 from metlinkpid import DisplayMessage, PID
+import wave
 
 __dirname = os.path.dirname(os.path.realpath(__file__))
 config = json.load(open(__dirname + '/config.json', 'r'))
 stations = json.load(open(__dirname + '/stations.json', 'r'))
+station_codes = json.load(open(__dirname + '/station_codes.json', 'r'))
 
 key = config['key']
 dev_id = config['dev_id']
+generate_audio = config['generate_audio']
+audio_path = config['audio_path']
 
 aus_mel = gettz('Australia/Melbourne')
 
@@ -23,6 +27,57 @@ city_loop_stations = [
 'Flagstaff',
 'Melbourne Central'
 ]
+
+
+def write_audio(platform, scheduled_hour, scheduled_minute, destination, stopping_pattern_audio):
+    greeting = None
+    if int(scheduled_hour) < 12:
+        greeting = 'item/item01'
+    elif int(scheduled_hour) < 17:
+        greeting = 'item/item02'
+    else:
+        greeting = 'item/item03'
+
+    hour_12 = str(int(scheduled_hour) % 12)
+
+    minute_file = 'time/minutes/min_{}'.format(scheduled_minute)
+    if scheduled_minute == '00':
+        if scheduled_hour == '0':
+            minute_file = 'time/on_hour/midnight'
+        elif int(scheduled_hour) < 12:
+            minute_file = 'time/on_hour/am'
+        elif scheduled_hour == '12':
+            minute_file = 'time/on_hour/noon'
+        else:
+            minute_file = 'time/on_hour/pm'
+
+    intro = [
+        'tone/chime',
+        greeting,
+        'tone/pause3'
+    ]
+    service_data = [
+        'platform/next/pn_{}'.format('0' + platform if int(platform) < 10 else platform),
+        'time/the_hour/the_{}'.format('0' + hour_12 if int(hour_12) < 10 else hour_12),
+        minute_file,
+        'station/dst/{}_dst'.format(station_codes[destination])
+    ] + stopping_pattern_audio
+
+    full_pattern = intro + service_data + [
+        'tone/pause2'
+    ] + service_data
+
+    parts = []
+    for segment in full_pattern:
+        w = wave.open(audio_path + segment + '.wav', 'rb')
+        parts.append([w.getparams(), w.readframes(w.getnframes())])
+        w.close()
+
+    output = wave.open('output.wav', 'wb')
+    output.setparams(parts[0][0])
+    for part in parts:
+        output.writeframes(part[1])
+    output.close()
 
 _DISPLAY_WIDTH = 120
 _CHARS_BY_WIDTH = {
@@ -71,6 +126,26 @@ def fix_right_justification(bytestring):
 
 def date(iso):
     return datetime.datetime.strptime(iso, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=aus_mel)
+
+def break_time(time):
+    time = date(time)
+    iso_time = str(time)
+
+    hour = time.hour
+    minute = time.minute
+
+    hour_offset = int(iso_time[-5:-3])
+    hour += hour_offset
+    hour %= 24
+    if minute < 10:
+        minute = '0' + str(minute)
+    else:
+        minute = str(minute)
+
+    return {
+        'hour': str(hour),
+        'minute': minute
+    }
 
 def format_time(time):
     time = date(time)
@@ -166,15 +241,25 @@ def get_next_departure_for_platform(station_name, platform):
             is_up = next_departure['direction_id'] == 5
 
         stopping_pattern = get_stopping_pattern(next_departure['run_id'], is_up, station_name)
+        stopping_pattern_data = generate_stopping_pattern(route_name, stopping_pattern, is_up, station_name)
 
-        stopping_pattern_info = generate_stopping_pattern(route_name, stopping_pattern, is_up, station_name)
-        stopping_text = stopping_pattern_info['stopping_pattern']
+        stopping_pattern_info = stopping_pattern_data['text']
+        stopping_pattern_audio = stopping_pattern_data['audio']
+
+        stopping_pattern_text = stopping_pattern_info['stopping_pattern']
         stopping_type = stopping_pattern_info['stopping_type']
 
         scheduled_departure_utc = next_departure['scheduled_departure_utc']
         estimated_departure_utc = next_departure['estimated_departure_utc']
 
+        if time_diff(scheduled_departure_utc) > 120:
+            raise Exception('NO TRAINS DEPART_FROM THIS PLATFORM')
+
         destination = stopping_pattern[-1]
+
+        if generate_audio:
+            time_parts = break_time(scheduled_departure_utc)
+            write_audio(platform, time_parts['hour'], time_parts['minute'], destination, stopping_pattern_audio)
 
         if is_up and 'Parliament' in stopping_pattern and station_name not in city_loop_stations:
             destination = 'City Loop'
@@ -184,7 +269,7 @@ def get_next_departure_for_platform(station_name, platform):
             "scheduled_departure_utc": scheduled_departure_utc,
             "estimated_departure_utc": estimated_departure_utc,
             "destination": destination,
-            "stopping_pattern": stopping_text,
+            "stopping_pattern": stopping_pattern_text,
             "stopping_type": stopping_type
         }
 

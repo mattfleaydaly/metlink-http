@@ -3,6 +3,7 @@ import os
 
 __dirname = os.path.dirname(os.path.realpath(__file__))
 lines = json.load(open(__dirname + '/lines.json', 'r'))
+station_codes = json.load(open(__dirname + '/station_codes.json', 'r'))
 
 northern_group = [
 'Craigieburn',
@@ -125,6 +126,15 @@ def generate_stopping_pattern(route_name, stopping_pattern, is_up, from_stop):
 
     destination = stopping_pattern[-1]
 
+    audio_parts = generate_audio_stopping_pattern(express_parts, relevant_stops, destination, via_city_loop, from_stop)
+    text_parts = generate_text_stopping_pattern(express_parts, relevant_stops, destination, via_city_loop, via_fss, from_stop)
+
+    return {
+        'audio': audio_parts,
+        'text': text_parts
+    }
+
+def generate_text_stopping_pattern(express_parts, relevant_stops, destination, via_city_loop, via_fss, from_stop):
     if len(express_parts) == 0:
         stopping_pattern = 'Stops All Stations'
         if via_city_loop and from_stop == 'Flinders Street':
@@ -202,3 +212,82 @@ def generate_stopping_pattern(route_name, stopping_pattern, is_up, from_stop):
         "stopping_pattern": joined,
         "stopping_type": stoppingType
     }
+
+
+def generate_audio_stopping_pattern(express_parts, relevant_stops, destination, via_city_loop, from_stop):
+    pattern = []
+    if len(express_parts) == 0:
+        pattern.append('item/item42') # stopping all stations
+        if via_city_loop:
+            pattern.append('station/phr/{}_phr'.format(station_codes[destination])) # to STN
+            pattern.append('item/item15') # via the city loop
+        else:
+            pattern.append('station/sen/{}_sen'.format(station_codes[destination])) # to STN
+        return pattern
+
+    if len(express_parts) == 1 and len(express_parts[0]) == 1:
+        pattern.append('item/item42') # stopping all stations
+        if via_city_loop:
+            pattern.append('station/phr/{}_phr'.format(station_codes[destination])) # to STN
+            pattern.append('station/exc/{}_exc'.format(station_codes[express_parts[0][0]])) # to STN
+            pattern.append('item/item15') # via the city loop
+        else:
+            pattern.append('station/sen/{}_sen'.format(station_codes[destination])) # to STN
+            pattern.append('station/exc/{}_exc'.format(station_codes[express_parts[0][0]])) # to STN
+        return pattern
+
+    last_stop = None
+
+    express_count = 0
+
+    for (i, express_sector) in enumerate(express_parts):
+        express_count += len(express_sector)
+
+        first_express_stop = express_sector[0]
+        last_express_stop = express_sector[-1]
+
+        prev_stop = relevant_stops[relevant_stops.index(first_express_stop) - 1]
+        next_stop = relevant_stops[relevant_stops.index(last_express_stop) + 1]
+
+        if last_stop:
+            if i == len(express_parts) - 1 and next_stop == destination:
+                pattern.append('item/item48') # then
+                pattern.append('item/item10') # running express from
+                pattern.append('station/flt/{}_flt'.format(station_codes[prev_stop])) # STN
+                pattern.append('station/phr/{}_phr'.format(station_codes[next_stop])) # to STN
+            elif last_stop == prev_stop:
+                pattern.append('station/flt/{}_flt'.format(station_codes[prev_stop])) # STN
+                pattern.append('station/phr/{}_phr'.format(station_codes[next_stop])) # to STN
+            else:
+                pattern.append('item/item42') # stopping all stations
+                pattern.append('station/phr/{}_phr'.format(station_codes[prev_stop])) # to STN
+                pattern.append('item/item10') # running express from
+                pattern.append('station/flt/{}_flt'.format(station_codes[prev_stop])) # STN
+                pattern.append('station/phr/{}_phr'.format(station_codes[next_stop])) # to STN
+        else:
+            if from_stop == prev_stop:
+                pattern.append('item/item10') # running express from
+                pattern.append('station/flt/{}_flt'.format(station_codes[prev_stop])) # STN
+                pattern.append('station/phr/{}_phr'.format(station_codes[next_stop])) # to STN
+            else:
+                pattern.append('item/item42') # stopping all stations
+                pattern.append('station/phr/{}_phr'.format(station_codes[prev_stop])) # to STN
+                pattern.append('item/item10') # running express from
+                pattern.append('station/flt/{}_flt'.format(station_codes[prev_stop])) # STN
+                pattern.append('station/phr/{}_phr'.format(station_codes[next_stop])) # to STN
+
+        last_stop = next_stop
+
+    if relevant_stops[relevant_stops.index(last_stop) + 1] != destination:
+        pattern.append('item/item48') # then
+        pattern.append('item/item42') # stopping all stations
+        if destination == 'Flinders Street':
+            if via_city_loop:
+                pattern.append('station/phr/fss_phr') # to FSS
+                pattern.append('item/item15') # via the city loop
+            else:
+                pattern.append('station/sen/fss_sen') # to FSS
+        else:
+            pattern.append('station/sen/{}_sen'.format(station_codes[destination])) # to STN
+
+    return pattern
