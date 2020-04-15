@@ -154,6 +154,7 @@ def main():
         last_string = ''
         global current_station, current_platform, live_thread, current_data
         while True:
+            pids_string = ''
             data = get_pids_data(current_station, current_platform)
             pids_string = data['data']
             del data['data']
@@ -165,6 +166,7 @@ def main():
                         pid.send(pids_string)
                     except Exception as e:
                         print('metlinkpid-http: {}'.format(e), file=stderr)
+                        print('Tried to send', pids_string)
                 last_string = pids_string
             else:
                 print('Nothing to do, skipping')
