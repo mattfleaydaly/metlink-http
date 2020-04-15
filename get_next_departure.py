@@ -46,16 +46,29 @@ def write_audio(platform, scheduled_hour, scheduled_minute, destination, stoppin
 
     hour_12 = str(int(scheduled_hour) % 12)
 
+    departure_time = []
+
     minute_file = 'time/minutes/min_{}'.format(scheduled_minute)
+    hour_file = 'time/the_hour/the_{}'.format('0' + hour_12 if int(hour_12) < 10 else hour_12)
     if scheduled_minute == '00':
         if scheduled_hour == '0':
             minute_file = 'time/on_hour/midnight'
+            departure_time = [minute_file]
         elif int(scheduled_hour) < 12:
             minute_file = 'time/on_hour/am'
         elif scheduled_hour == '12':
             minute_file = 'time/on_hour/noon'
+            departure_time = [minute_file]
         else:
             minute_file = 'time/on_hour/pm'
+
+    if len(departure_time) == 0:
+        if scheduled_hour == '0':
+            hour_file = 'time/the_hour/the_12'
+
+        departure_time = [
+            hour_file, minute_file
+        ]
 
     intro = [
         'tone/chime',
@@ -64,8 +77,7 @@ def write_audio(platform, scheduled_hour, scheduled_minute, destination, stoppin
     ]
     service_data = [
         'platform/next/pn_{}'.format('0' + platform if int(platform) < 10 else platform),
-        'time/the_hour/the_{}'.format('0' + hour_12 if int(hour_12) < 10 else hour_12),
-        minute_file,
+    ] + departure_time + [
         'station/dst/{}_dst'.format(station_codes[destination])
     ] + stopping_pattern_audio
 
