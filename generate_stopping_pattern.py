@@ -190,7 +190,7 @@ def generate_text_stopping_pattern(express_parts, relevant_stops, destination, v
 
         last_stop = next_stop
 
-    if relevant_stops[relevant_stops.index(last_stop) + 1] != destination:
+    if relevant_stops[relevant_stops.index(last_stop)] != destination:
         texts.append('then Stops All Stations to {}'.format(destination))
 
     joined = ', '.join(texts)
@@ -278,15 +278,12 @@ def generate_audio_stopping_pattern(express_parts, relevant_stops, destination, 
 
         last_stop = next_stop
 
-    if relevant_stops[relevant_stops.index(last_stop) + 1] != destination:
+    if relevant_stops[relevant_stops.index(last_stop)] != destination:
         pattern.append('item/item48') # then
         pattern.append('item/item42') # stopping all stations
-        if destination == 'Flinders Street':
-            if via_city_loop:
-                pattern.append('station/phr/fss_phr') # to FSS
-                pattern.append('item/item15') # via the city loop
-            else:
-                pattern.append('station/sen/fss_sen') # to FSS
+        if via_city_loop:
+            pattern.append('station/sen/{}_phr'.format(station_codes[destination])) # to STN
+            pattern.append('item/item15') # via the CCL
         else:
             pattern.append('station/sen/{}_sen'.format(station_codes[destination])) # to STN
 
