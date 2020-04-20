@@ -270,7 +270,7 @@ def get_next_departure_for_platform(station_name, platform):
         scheduled_departure_utc = next_departure['scheduled_departure_utc']
         estimated_departure_utc = next_departure['estimated_departure_utc']
 
-        if time_diff(scheduled_departure_utc) > 120:
+        if time_diff(scheduled_departure_utc) > 420:
             raise Exception('NO TRAINS DEPART_FROM THIS PLATFORM')
 
         destination = stopping_pattern[-1]
