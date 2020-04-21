@@ -126,7 +126,7 @@ def generate_stopping_pattern(route_name, stopping_pattern, is_up, from_stop):
 
     destination = stopping_pattern[-1]
 
-    audio_parts = generate_audio_stopping_pattern(express_parts, relevant_stops, destination, via_city_loop, from_stop)
+    audio_parts = generate_audio_stopping_pattern(express_parts, relevant_stops, destination, via_city_loop, via_fss, from_stop)
     text_parts = generate_text_stopping_pattern(express_parts, relevant_stops, destination, via_city_loop, via_fss, from_stop)
 
     return {
@@ -214,13 +214,17 @@ def generate_text_stopping_pattern(express_parts, relevant_stops, destination, v
     }
 
 
-def generate_audio_stopping_pattern(express_parts, relevant_stops, destination, via_city_loop, from_stop):
+def generate_audio_stopping_pattern(express_parts, relevant_stops, destination, via_city_loop, via_fss, from_stop):
     pattern = []
     if len(express_parts) == 0:
         pattern.append('item/item42') # stopping all stations
         if via_city_loop:
             pattern.append('station/phr/{}_phr'.format(station_codes[destination])) # to STN
-            pattern.append('item/item15') # via the city loop
+            if via_fss:
+                pattern.append('item/qitem35') # via the city loop and
+                pattern.append('station/dst/fss_dst') # FSS
+            else:
+                pattern.append('item/item15') # via the city loop
         else:
             pattern.append('station/sen/{}_sen'.format(station_codes[destination])) # to STN
         return pattern
@@ -230,7 +234,11 @@ def generate_audio_stopping_pattern(express_parts, relevant_stops, destination, 
         if via_city_loop:
             pattern.append('station/phr/{}_phr'.format(station_codes[destination])) # to STN
             pattern.append('station/exc/{}_exc'.format(station_codes[express_parts[0][0]])) # to STN
-            pattern.append('item/item15') # via the city loop
+            if via_fss:
+                pattern.append('item/qitem35') # via the city loop and
+                pattern.append('station/dst/fss_dst') # FSS
+            else:
+                pattern.append('item/item15') # via the city loop
         else:
             pattern.append('station/sen/{}_sen'.format(station_codes[destination])) # to STN
             pattern.append('station/exc/{}_exc'.format(station_codes[express_parts[0][0]])) # to STN
@@ -282,8 +290,12 @@ def generate_audio_stopping_pattern(express_parts, relevant_stops, destination, 
         pattern.append('item/item48') # then
         pattern.append('item/item42') # stopping all stations
         if via_city_loop:
-            pattern.append('station/sen/{}_phr'.format(station_codes[destination])) # to STN
-            pattern.append('item/item15') # via the CCL
+            pattern.append('station/phr/{}_phr'.format(station_codes[destination])) # to STN
+            if via_fss:
+                pattern.append('item/qitem35') # via the city loop and
+                pattern.append('station/dst/fss_dst') # FSS
+            else:
+                pattern.append('item/item15') # via the CCL
         else:
             pattern.append('station/sen/{}_sen'.format(station_codes[destination])) # to STN
 

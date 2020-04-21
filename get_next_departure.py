@@ -83,7 +83,12 @@ def write_audio(platform, scheduled_hour, scheduled_minute, destination, stoppin
 
     full_pattern = intro + service_data + [
         'tone/pause3'
-    ] + service_data
+    ] + service_data + [
+        'tone/pause3',
+        'item/qitem14',
+        'tone/dtmf_s',
+        'tone/dtmf_s'
+    ]
 
     parts = []
     for segment in full_pattern:
