@@ -355,5 +355,6 @@ def get_pids_data(station_name, platform):
         "scheduled": scheduled_departure,
         "destination": destination,
         "actual": time_to_departure,
-        "pattern": stopping_pattern
+        "pattern": stopping_pattern,
+        "type": bottom_row
     }
