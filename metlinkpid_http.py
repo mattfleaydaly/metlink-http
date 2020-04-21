@@ -26,11 +26,12 @@ from flask import Flask, request, jsonify
 from metlinkpid import PID
 from waitress import serve
 from time import sleep
+import json
 
 from get_next_departure import get_pids_data
 
 import git
-from os import getcwd
+from os import getcwd, path
 
 import traceback
 
@@ -40,6 +41,9 @@ repo = git.Repo(getcwd())
 master = repo.head.reference
 current_commit = master.commit.hexsha[0:8]
 current_message = master.commit.message
+
+__dirname = path.dirname(path.realpath(__file__))
+config = json.load(open(__dirname + '/config.json', 'r'))
 
 class thread_with_trace(Thread):
   def __init__(self, *args, **keywords):
@@ -137,6 +141,20 @@ def main():
             'hash': current_commit,
             'msg': current_message
         })
+
+    @app.route("/enable-audio")
+    def enable_audio():
+        with open('config.json', 'w') as f:
+            config['generate_audio'] = True
+            json.dump(config, f)
+        return jsonify({ 'message': 'ok' })
+
+    @app.route("/disable-audio")
+    def disable_audio():
+        with open('config.json', 'w') as f:
+            config['generate_audio'] = False
+            json.dump(config, f)
+        return jsonify({ 'message': 'ok' })
 
     ping_event = Event()
 
