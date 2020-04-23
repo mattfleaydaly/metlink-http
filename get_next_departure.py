@@ -292,7 +292,7 @@ def get_next_departure_for_platform(station_name, platform):
         }
 
     elif len(rrb_departures):
-        raise NoTrains('NO TRAINS OPERATING_REPLACEMENT BUSES|H1^_HAVE BEEN ARRANGED')
+        raise NoTrains('NO TRAINS OPERATING_REPLACEMENT BUSES|H1^_ALTERNATIVE TRANSPORT HAS BEEN ARRANGED, CHECK POSTER DISPLAY CASES')
     else:
         raise NoTrains('NO TRAINS DEPART_FROM THIS PLATFORM')
 
