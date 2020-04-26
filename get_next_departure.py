@@ -358,6 +358,7 @@ def get_pids_data(station_name, platform):
 
     return {
         "data": fix_right_justification(msg),
+        "data_type": "auto",
         "scheduled": scheduled_departure,
         "destination": destination,
         "actual": time_to_departure,

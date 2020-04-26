@@ -26,7 +26,7 @@ setuptools.setup(
         'python-dateutil~=2.8.1',
         'requests~=2.22.0',
         'git-python~=1.0.3',
-        'simpleaudio~=1.0.4'
+        'pygame~=1.9.6'
     ],
     entry_points={
         'console_scripts': [

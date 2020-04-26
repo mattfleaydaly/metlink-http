@@ -36,7 +36,8 @@ import git
 from os import getcwd, path
 
 # from playsound import playsound
-import simpleaudio
+# import simpleaudio
+import pygame
 
 PING_INTERNAL_SEC = 10
 
@@ -47,6 +48,9 @@ current_message = master.commit.message
 
 __dirname = path.dirname(path.realpath(__file__))
 config = json.load(open(__dirname + '/config.json', 'r'))
+
+pygame.mixer.pre_init(config['audio_rate'], -16, 2, 1024)
+pygame.mixer.init()
 
 play_announcements = config['generate_audio']
 
@@ -186,9 +190,17 @@ def main():
                 break
 
     def play_audio(path):
-        wave_obj = simpleaudio.WaveObject.from_wave_file(path)
-        play_obj = wave_obj.play()
-        play_obj.wait_done()
+        #pygame
+        pygame.mixer.music.load("output.wav")
+        pygame.mixer.music.play()
+
+        #playsound
+        # playsound(path)
+
+        #simpleaudio
+        # wave_obj = simpleaudio.WaveObject.from_wave_file(path)
+        # play_obj = wave_obj.play()
+        # play_obj.wait_done()
 
 
     def play_announcement():
@@ -200,6 +212,7 @@ def main():
         if train_delay < 5:
             if service_id not in services_played:
                 services_played.append(service_id)
+                print('Playing', service_id)
                 play_audio(__dirname + '/output.wav')
                 services_played = services_played[-20:]
         else:
@@ -226,7 +239,9 @@ def main():
             pids_string = data['data']
             del data['data']
             current_data = data
-            schedule_announcement()
+
+            if data['data_type'] == 'auto':
+                schedule_announcement()
 
             if last_string != pids_string:
                 with pid_lock:
