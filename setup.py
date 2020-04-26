@@ -25,7 +25,8 @@ setuptools.setup(
         'waitress~=1.3.0',
         'python-dateutil~=2.8.1',
         'requests~=2.22.0',
-        'git-python~=1.0.3'
+        'git-python~=1.0.3',
+        'simpleaudio~=1.0.4'
     ],
     entry_points={
         'console_scripts': [

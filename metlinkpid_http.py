@@ -30,10 +30,13 @@ import json
 
 from get_next_departure import get_pids_data
 
+from timeouts import set_timeout
+
 import git
 from os import getcwd, path
 
-import traceback
+# from playsound import playsound
+import simpleaudio
 
 PING_INTERNAL_SEC = 10
 
@@ -44,6 +47,8 @@ current_message = master.commit.message
 
 __dirname = path.dirname(path.realpath(__file__))
 config = json.load(open(__dirname + '/config.json', 'r'))
+
+play_announcements = config['generate_audio']
 
 class thread_with_trace(Thread):
   def __init__(self, *args, **keywords):
@@ -75,15 +80,19 @@ class thread_with_trace(Thread):
   def kill(self):
     self.killed = True
 
+current_station = None
+current_platform = None
+
+current_timeout = None
+
+live_thread = None
+current_data = {}
+
+services_played = []
+
 def main():
     global current_station, current_platform, live_thread, current_data
     args = envopt(__doc__, prefix='METLINKPID_')
-
-    current_station = None
-    current_platform = None
-
-    live_thread = None
-    current_data = {}
 
     try:
         pid = PID.for_device(args['--serial'])
@@ -123,6 +132,10 @@ def main():
         if live_thread:
             live_thread.kill()
 
+        if current_timeout:
+            current_timeout.kill()
+
+
         with pid_lock:
             try:
                 pid.send('  _  ')
@@ -144,15 +157,19 @@ def main():
 
     @app.route("/enable-audio")
     def enable_audio():
+        global play_announcements
         with open('config.json', 'w') as f:
             config['generate_audio'] = True
+            play_announcements = True
             json.dump(config, f)
         return jsonify({ 'message': 'ok' })
 
     @app.route("/disable-audio")
     def disable_audio():
+        global play_announcements
         with open('config.json', 'w') as f:
             config['generate_audio'] = False
+            play_announcements = False
             json.dump(config, f)
         return jsonify({ 'message': 'ok' })
 
@@ -168,6 +185,37 @@ def main():
             if ping_event.wait(PING_INTERNAL_SEC):
                 break
 
+    def play_audio(path):
+        wave_obj = simpleaudio.WaveObject.from_wave_file(path)
+        play_obj = wave_obj.play()
+        play_obj.wait_done()
+
+
+    def play_announcement():
+        global current_data
+        train_delay = current_data['scheduled_minutes_to_dep'] - current_data['minutes_to_dep']
+
+        service_id = current_data['scheduled'] + current_data['destination']
+
+        if train_delay < 5:
+            if service_id not in services_played:
+                play_audio(__dirname + '/output.wav')
+                services_played.append(service_id)
+        else:
+            # generate delay audio and play
+            pass
+
+    def schedule_announcement():
+        global current_data, current_timeout
+        if current_timeout:
+            current_timeout.kill()
+
+        current_timeout = None
+
+        two_minutes_before = current_data['scheduled_minutes_to_dep'] - 2
+
+        current_timeout = set_timeout(play_announcement, two_minutes_before * 60)
+
     def send_live_data():
         last_string = ''
         global current_station, current_platform, live_thread, current_data
@@ -177,6 +225,7 @@ def main():
             pids_string = data['data']
             del data['data']
             current_data = data
+            schedule_announcement()
 
             if last_string != pids_string:
                 with pid_lock:
@@ -184,7 +233,7 @@ def main():
                         pid.send(pids_string)
                     except Exception as e:
                         print('metlinkpid-http: {}'.format(e), file=stderr)
-                        print('Tried to send', pids_string)
+                        # print('Tried to send', pids_string)
                 last_string = pids_string
             else:
                 print('Nothing to do, skipping')

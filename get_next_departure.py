@@ -63,7 +63,7 @@ def write_audio(platform, scheduled_hour, scheduled_minute, destination, stoppin
             minute_file = 'time/on_hour/pm'
 
     if len(departure_time) == 0:
-        if scheduled_hour == '0':
+        if hour_file == 'time/the_hour/the_00':
             hour_file = 'time/the_hour/the_12'
 
         departure_time = [
@@ -83,7 +83,10 @@ def write_audio(platform, scheduled_hour, scheduled_minute, destination, stoppin
 
     full_pattern = intro + service_data + [
         'tone/pause3'
-    ] + service_data
+    ] + service_data + [
+        'tone/pause3', 'item/qitem14',
+        'tone/pause3', 'tone/dtmf_s', 'tone/dtmf_s'
+    ]
 
     parts = []
     for segment in full_pattern:
@@ -188,7 +191,7 @@ def time_diff(iso):
 
     millisecond_diff = (time_millis - millis_now)
 
-    return int(millisecond_diff // 60)
+    return millisecond_diff / 60
 
 def get_stopping_pattern(run_id, is_up, from_stop):
     url = '/v3/pattern/run/{}/route_type/0?expand=stop'.format(run_id)
@@ -275,12 +278,12 @@ def get_next_departure_for_platform(station_name, platform):
 
         destination = stopping_pattern[-1]
 
+        if is_up and 'Parliament' in stopping_pattern and station_name not in city_loop_stations:
+            destination = 'City Loop'
+
         if generate_audio:
             time_parts = break_time(scheduled_departure_utc)
             write_audio(next_departure['platform_number'], time_parts['hour'], time_parts['minute'], destination, stopping_pattern_audio)
-
-        if is_up and 'Parliament' in stopping_pattern and station_name not in city_loop_stations:
-            destination = 'City Loop'
 
         return {
             "td": train_descriptor,
@@ -311,7 +314,7 @@ def get_pids_data(station_name, platform):
 
         return {
             "data": data,
-            "type": "manual",
+            "data_type": "manual",
             "top": top,
             "bottom": bottom
         }
@@ -324,7 +327,7 @@ def get_pids_data(station_name, platform):
 
     actual_departure_utc = estimated_departure_utc or scheduled_departure_utc
 
-    time_to_departure = time_diff(actual_departure_utc)
+    time_to_departure = int(time_diff(actual_departure_utc))
     if time_to_departure <= 0:
         time_to_departure = 'NOW'
     else:
@@ -352,11 +355,14 @@ def get_pids_data(station_name, platform):
         pids_string += '|H0^_  {}'.format(stopping_pattern)
 
     msg = DisplayMessage.from_str(pids_string).to_bytes()
+
     return {
         "data": fix_right_justification(msg),
         "scheduled": scheduled_departure,
         "destination": destination,
         "actual": time_to_departure,
         "pattern": stopping_pattern,
-        "type": bottom_row
+        "type": bottom_row,
+        "minutes_to_dep": time_diff(actual_departure_utc),
+        "scheduled_minutes_to_dep": time_diff(scheduled_departure_utc)
     }
