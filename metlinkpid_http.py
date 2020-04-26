@@ -37,7 +37,7 @@ from os import getcwd, path
 
 # from playsound import playsound
 # import simpleaudio
-import pygame
+from pygame import mixer
 
 PING_INTERNAL_SEC = 10
 
@@ -49,9 +49,9 @@ current_message = master.commit.message
 __dirname = path.dirname(path.realpath(__file__))
 config = json.load(open(__dirname + '/config.json', 'r'))
 
-pygame.mixer.quit()
-pygame.mixer.pre_init(config['audio_rate'], -16, 2, 1024)
-pygame.mixer.init(config['audio_rate'], -16, 2, 1024)
+mixer.quit()
+mixer.pre_init(config['audio_rate'], -16, 2, 1024)
+mixer.init(config['audio_rate'], -16, 2, 1024)
 
 play_announcements = config['generate_audio']
 
@@ -166,7 +166,7 @@ def main():
         with open('config.json', 'w') as f:
             config['generate_audio'] = True
             play_announcements = True
-            json.dump(config, f)
+            json.dump(config, f, indent=2)
         return jsonify({ 'message': 'ok' })
 
     @app.route("/disable-audio")
@@ -175,7 +175,7 @@ def main():
         with open('config.json', 'w') as f:
             config['generate_audio'] = False
             play_announcements = False
-            json.dump(config, f)
+            json.dump(config, f, indent=2)
         return jsonify({ 'message': 'ok' })
 
     ping_event = Event()
@@ -192,8 +192,8 @@ def main():
 
     def play_audio(path):
         #pygame
-        pygame.mixer.music.load("output.wav")
-        pygame.mixer.music.play()
+        mixer.music.load("output.wav")
+        mixer.music.play()
 
         #playsound
         # playsound(path)
