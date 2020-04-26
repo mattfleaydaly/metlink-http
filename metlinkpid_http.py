@@ -192,15 +192,16 @@ def main():
 
 
     def play_announcement():
-        global current_data
-        train_delay = current_data['scheduled_minutes_to_dep'] - current_data['minutes_to_dep']
+        global current_data, services_played
 
+        train_delay = current_data['scheduled_minutes_to_dep'] - current_data['minutes_to_dep']
         service_id = current_data['scheduled'] + current_data['destination']
 
         if train_delay < 5:
             if service_id not in services_played:
-                play_audio(__dirname + '/output.wav')
                 services_played.append(service_id)
+                play_audio(__dirname + '/output.wav')
+                services_played = services_played[:-20]
         else:
             # generate delay audio and play
             pass
