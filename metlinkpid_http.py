@@ -201,7 +201,7 @@ def main():
             if service_id not in services_played:
                 services_played.append(service_id)
                 play_audio(__dirname + '/output.wav')
-                services_played = services_played[:-20]
+                services_played = services_played[-20:]
         else:
             # generate delay audio and play
             pass
