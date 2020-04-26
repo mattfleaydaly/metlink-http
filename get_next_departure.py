@@ -336,8 +336,8 @@ def get_pids_data(station_name, platform):
     destination = destination.upper()
     if destination == 'FLINDERS STREET':
         destination = 'FLINDERS ST'
-    if destination == ‘NORTH MELBOURNE’:
-        destination = ‘NORTH MELB’
+    if destination == 'NORTH MELBOURNE':
+        destination = 'NORTH MELB'
     if destination == 'SOUTHERN CROSS':
         destination = 'STHN CROSS'
     if destination == 'UPPER FERNTREE GULLY':

@@ -35,8 +35,8 @@ city_loop_stations = [
 def get_route_stops(route_name):
     if route_name in ['Pakenham', 'Traralgon', 'Bairnsdale']:
         return lines['Gippsland']
-    if route_name in ['Showgrounds', 'Flemington Racecourse']:
-        return lines[‘Flemington Racecourse’]
+    if route_name in ['Showgrounds/Flemington']:
+        return lines['Flemington Racecourse']
     if route_name == 'Cranbourne':
         return lines['Cranbourne']
     if route_name == 'Belgrave':
