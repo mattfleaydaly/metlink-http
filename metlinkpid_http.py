@@ -48,10 +48,6 @@ current_message = master.commit.message
 __dirname = path.dirname(path.realpath(__file__))
 config = json.load(open(__dirname + '/config.json', 'r'))
 
-mixer.quit()
-mixer.pre_init(config['audio_rate'], -16, 2, 1024)
-mixer.init(config['audio_rate'], -16, 2, 1024)
-
 play_announcements = config['generate_audio']
 
 class thread_with_trace(Thread):
