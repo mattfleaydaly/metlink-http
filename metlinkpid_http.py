@@ -37,7 +37,6 @@ from os import getcwd, path
 
 # from playsound import playsound
 # import simpleaudio
-from pygame import mixer
 
 PING_INTERNAL_SEC = 10
 
