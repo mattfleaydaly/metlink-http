@@ -192,8 +192,7 @@ def main():
 
     def play_audio(path):
         #pygame
-        mixer.music.load("output.wav")
-        mixer.music.play()
+        aplay -Dplug:default output.wav
 
         #playsound
         # playsound(path)
