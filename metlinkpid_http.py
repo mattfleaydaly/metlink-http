@@ -192,7 +192,8 @@ def main():
 
     def play_audio(path):
         #pygame
-        aplay -Dplug:default output.wav
+        import subprocess
+        subprocess.Popen(['aplay', '-Dplug:default', 'output.wav'])
 
         #playsound
         # playsound(path)
