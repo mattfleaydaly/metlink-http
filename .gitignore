@@ -217,3 +217,5 @@ dmypy.json
 
 config.json
 output.wav
+output-delay.wav
+.DS_Store

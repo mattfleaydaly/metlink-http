@@ -35,6 +35,9 @@ from timeouts import set_timeout
 import git
 from os import getcwd, path
 
+import subprocess
+import audio
+
 # from playsound import playsound
 # import simpleaudio
 
@@ -49,6 +52,8 @@ __dirname = path.dirname(path.realpath(__file__))
 config = json.load(open(__dirname + '/config.json', 'r'))
 
 play_announcements = config['generate_audio']
+
+audio_command = config['audio_command']
 
 class thread_with_trace(Thread):
   def __init__(self, *args, **keywords):
@@ -187,8 +192,7 @@ def main():
 
     def play_audio(path):
         #pygame
-        import subprocess
-        subprocess.Popen(['aplay', '-Dplug:default', 'output.wav'])
+        subprocess.Popen(audio_command + [path])
 
         #playsound
         # playsound(path)
@@ -202,7 +206,7 @@ def main():
     def play_announcement():
         global current_data, services_played
 
-        train_delay = current_data['scheduled_minutes_to_dep'] - current_data['minutes_to_dep']
+        train_delay = current_data['minutes_to_dep'] - current_data['scheduled_minutes_to_dep']
         service_id = current_data['scheduled'] + current_data['destination']
 
         if train_delay < 5:
@@ -212,8 +216,27 @@ def main():
                 play_audio(__dirname + '/output.wav')
                 services_played = services_played[-20:]
         else:
-            # generate delay audio and play
-            pass
+            service_files = audio.get_service_files(current_data['scheduled_hour'], current_data['scheduled_minute'], current_data['raw_dest'])
+
+            minutes_to_dep = round(current_data['minutes_to_dep'])
+            padded_minutes_to_dep = '0' + str(minutes_to_dep) if minutes_to_dep < 10 else str(minutes_to_dep)
+
+            message_data = service_files + [
+                'item/qitem06',
+                'time/dept_min/dep{}_m'.format(padded_minutes_to_dep)
+            ]
+
+            platform = current_data['platform']
+            padded_platform = ('0' + str(platform)) if platform < 10 else str(platform)
+
+            data = [
+                'tone/chime', 'platform/attn/pltatn{}'.format(padded_platform), 'tone/pause3'
+            ] + message_data + ['tone/pause3'] + message_data
+
+            audio.create_metro_audio(data, 'output-delay')
+
+            print('Playing delayed', service_id)
+            play_audio(__dirname + '/output-delay.wav')
 
     def schedule_announcement():
         global current_data, current_timeout

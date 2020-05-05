@@ -8,6 +8,7 @@ from generate_stopping_pattern import generate_stopping_pattern
 import os
 from metlinkpid import DisplayMessage, PID
 import wave
+import audio
 
 import traceback
 
@@ -44,31 +45,7 @@ def write_audio(platform, scheduled_hour, scheduled_minute, destination, stoppin
     else:
         greeting = 'item/item03'
 
-    hour_12 = str(int(scheduled_hour) % 12)
-
-    departure_time = []
-
-    minute_file = 'time/minutes/min_{}'.format(scheduled_minute)
-    hour_file = 'time/the_hour/the_{}'.format('0' + hour_12 if int(hour_12) < 10 else hour_12)
-    if scheduled_minute == '00':
-        if scheduled_hour == '0':
-            minute_file = 'time/on_hour/midnight'
-            departure_time = [minute_file]
-        elif int(scheduled_hour) < 12:
-            minute_file = 'time/on_hour/am'
-        elif scheduled_hour == '12':
-            minute_file = 'time/on_hour/noon'
-            departure_time = [minute_file]
-        else:
-            minute_file = 'time/on_hour/pm'
-
-    if len(departure_time) == 0:
-        if hour_file == 'time/the_hour/the_00':
-            hour_file = 'time/the_hour/the_12'
-
-        departure_time = [
-            hour_file, minute_file
-        ]
+    service_files = audio.get_service_files(scheduled_hour, scheduled_minute, destination)
 
     intro = [
         'tone/chime',
@@ -77,28 +54,15 @@ def write_audio(platform, scheduled_hour, scheduled_minute, destination, stoppin
     ]
     service_data = [
         'platform/next/pn_{}'.format('0' + platform if int(platform) < 10 else platform),
-    ] + departure_time + [
-        'station/dst/{}_dst'.format(station_codes[destination])
-    ] + stopping_pattern_audio
+    ] + service_files + stopping_pattern_audio
 
     full_pattern = intro + service_data + [
         'tone/pause3'
     ] + service_data + [
-        'tone/pause3', 'item/qitem14',
-        'tone/pause3', 'tone/dtmf_s', 'tone/dtmf_s'
+        'tone/pause3', 'item/qitem14'
     ]
 
-    parts = []
-    for segment in full_pattern:
-        w = wave.open(audio_path + segment + '.wav', 'rb')
-        parts.append([w.getparams(), w.readframes(w.getnframes())])
-        w.close()
-
-    output = wave.open('output.wav', 'wb')
-    output.setparams(parts[0][0])
-    for part in parts:
-        output.writeframes(part[1])
-    output.close()
+    audio.create_metro_audio(full_pattern, 'output')
 
 _DISPLAY_WIDTH = 120
 _CHARS_BY_WIDTH = {
@@ -291,7 +255,10 @@ def get_next_departure_for_platform(station_name, platform):
             "estimated_departure_utc": estimated_departure_utc,
             "destination": destination,
             "stopping_pattern": stopping_pattern_text,
-            "stopping_type": stopping_type
+            "stopping_type": stopping_type,
+            "scheduled_hour": time_parts['hour'],
+            "scheduled_minute": time_parts['minute'],
+            "platform": next_departure['platform_number']
         }
 
     elif len(rrb_departures):
@@ -333,6 +300,8 @@ def get_pids_data(station_name, platform):
     else:
         time_to_departure = str(time_to_departure)
 
+    raw_destination = destination
+
     destination = destination.upper()
     if destination == 'FLINDERS STREET':
         destination = 'FLINDERS ST'
@@ -365,5 +334,9 @@ def get_pids_data(station_name, platform):
         "pattern": stopping_pattern,
         "type": bottom_row,
         "minutes_to_dep": time_diff(actual_departure_utc),
-        "scheduled_minutes_to_dep": time_diff(scheduled_departure_utc)
+        "scheduled_minutes_to_dep": time_diff(scheduled_departure_utc),
+        "scheduled_hour": next_departure['scheduled_hour'],
+        "scheduled_minute": next_departure['scheduled_minute'],
+        "platform": int(next_departure['platform']),
+        "raw_dest": raw_destination
     }
