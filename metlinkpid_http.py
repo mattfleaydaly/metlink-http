@@ -245,7 +245,7 @@ def main():
 
         current_timeout = None
 
-        two_minutes_before = current_data['scheduled_minutes_to_dep'] - 2
+        two_minutes_before = current_data['minutes_to_dep'] - 2
 
         current_timeout = set_timeout(play_announcement, two_minutes_before * 60)
 
