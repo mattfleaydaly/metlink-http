@@ -94,6 +94,7 @@ live_thread = None
 current_data = {}
 
 services_played = []
+delays_played = []
 
 def main():
     global current_station, current_platform, live_thread, current_data
@@ -191,52 +192,49 @@ def main():
                 break
 
     def play_audio(path):
-        #pygame
         subprocess.Popen(audio_command + [path])
-
-        #playsound
-        # playsound(path)
-
-        #simpleaudio
-        # wave_obj = simpleaudio.WaveObject.from_wave_file(path)
-        # play_obj = wave_obj.play()
-        # play_obj.wait_done()
-
 
     def play_announcement():
         global current_data, services_played
 
+        minutes_to_dep = current_data['minutes_to_dep']
         train_delay = current_data['minutes_to_dep'] - current_data['scheduled_minutes_to_dep']
-        service_id = current_data['scheduled'] + current_data['destination']
+        service_id = current_data['service_id']
 
-        if train_delay < 5:
+        if train_delay < 5 or minutes_to_dep < 2:
+            remaining = (minutes_to_dep - 2) * 60
+            if remaining > 0:
+                sleep(remaining)
             if service_id not in services_played:
                 services_played.append(service_id)
                 print('Playing', service_id)
                 play_audio(__dirname + '/output.wav')
                 services_played = services_played[-20:]
         else:
-            service_files = audio.get_service_files(current_data['scheduled_hour'], current_data['scheduled_minute'], current_data['raw_dest'])
+            if service_id not in delays_played:
+                delays_played.append(service_id)
 
-            minutes_to_dep = round(current_data['minutes_to_dep'])
-            padded_minutes_to_dep = '0' + str(minutes_to_dep) if minutes_to_dep < 10 else str(minutes_to_dep)
+                service_files = audio.get_service_files(current_data['scheduled_hour'], current_data['scheduled_minute'], current_data['raw_dest'])
 
-            message_data = service_files + [
-                'item/qitem06',
-                'time/dept_min/dep{}_m'.format(padded_minutes_to_dep)
-            ]
+                padded_minutes_to_dep = '0' + str(round(minutes_to_dep)) if minutes_to_dep < 10 else str(round(minutes_to_dep))
 
-            platform = current_data['platform']
-            padded_platform = ('0' + str(platform)) if platform < 10 else str(platform)
+                message_data = service_files + [
+                    'item/qitem06',
+                    'time/dept_min/dep{}_m'.format(padded_minutes_to_dep)
+                ]
 
-            data = [
-                'tone/chime', 'platform/attn/pltatn{}'.format(padded_platform), 'tone/pause3'
-            ] + message_data + ['tone/pause3'] + message_data
+                platform = current_data['platform']
+                padded_platform = ('0' + str(platform)) if platform < 10 else str(platform)
 
-            audio.create_metro_audio(data, 'output-delay')
+                data = [
+                    'tone/chime', 'platform/attn/pltatn{}'.format(padded_platform), 'tone/pause3'
+                ] + message_data + ['tone/pause3'] + message_data
 
-            print('Playing delayed', service_id)
-            play_audio(__dirname + '/output-delay.wav')
+                audio.create_metro_audio(data, 'output-delay')
+
+                print('Playing delayed', service_id)
+                play_audio(__dirname + '/output-delay.wav')
+                services_played = services_played[-20:]
 
     def schedule_announcement():
         global current_data, current_timeout
@@ -245,7 +243,7 @@ def main():
 
         current_timeout = None
 
-        two_minutes_before = current_data['minutes_to_dep'] - 2
+        two_minutes_before = current_data['scheduled_minutes_to_dep'] - 2
 
         current_timeout = set_timeout(play_announcement, two_minutes_before * 60)
 

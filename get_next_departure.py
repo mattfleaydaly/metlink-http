@@ -64,6 +64,30 @@ def write_audio(platform, scheduled_hour, scheduled_minute, destination, stoppin
 
     audio.create_metro_audio(full_pattern, 'output')
 
+def write_cancelled_audio(platform, scheduled_hour, scheduled_minute, destination, stopping_pattern_audio, following, following_destination, following_pattern):
+    service_files = audio.get_service_files(scheduled_hour, scheduled_minute, destination)
+
+    time_parts = break_time(following['scheduled_departure_utc'])
+    following_service_files = audio.get_service_files(time_parts['hour'], time_parts['minute'], following_destination)
+
+    intro = [
+        'tone/chime',
+        'platform/attn/pltatn{}'.format('0' + platform if int(platform) < 10 else platform),
+        'tone/pause3'
+    ]
+
+    service_data = service_files + stopping_pattern_audio + [
+        'item/item23'
+    ]
+
+    full_pattern = intro + service_data + [
+        'tone/pause3'
+    ] + service_data + [
+        'tone/pause3', 'item/item41'
+    ] + following_service_files + following_pattern
+
+    audio.create_metro_audio(full_pattern, 'output')
+
 _DISPLAY_WIDTH = 120
 _CHARS_BY_WIDTH = {
     3: b'.',
@@ -194,9 +218,59 @@ def transform(departure):
 
     return departure
 
+def process_departure(next_departure, runs, routes, station_name, following=None, following_destination=None, following_pattern=None):
+    run_data = runs[str(next_departure['run_id'])]
+    vehicle_descriptor = run_data['vehicle_descriptor'] or { 'id': None }
+    train_descriptor = vehicle_descriptor['id']
+    route_name = routes[str(next_departure['route_id'])]['route_name']
+
+    is_up = next_departure['direction_id'] == 1
+    if next_departure['route_id'] == '13':
+        is_up = next_departure['direction_id'] == 5
+
+    stopping_pattern = get_stopping_pattern(next_departure['run_id'], is_up, station_name)
+    stopping_pattern_data = generate_stopping_pattern(route_name, stopping_pattern, is_up, station_name)
+
+    stopping_pattern_info = stopping_pattern_data['text']
+    stopping_pattern_audio = stopping_pattern_data['audio']
+
+    stopping_pattern_text = stopping_pattern_info['stopping_pattern']
+    stopping_type = stopping_pattern_info['stopping_type']
+
+    scheduled_departure_utc = next_departure['scheduled_departure_utc']
+    estimated_departure_utc = next_departure['estimated_departure_utc']
+
+    if time_diff(scheduled_departure_utc) > 120:
+        raise NoTrains('NO TRAINS DEPART_FROM THIS PLATFORM')
+
+    destination = stopping_pattern[-1]
+
+    if is_up and 'Parliament' in stopping_pattern and station_name not in city_loop_stations:
+        destination = 'City Loop'
+
+    if generate_audio:
+        time_parts = break_time(scheduled_departure_utc)
+        if run_data['status'] == 'cancelled':
+            write_cancelled_audio(next_departure['platform_number'], time_parts['hour'], time_parts['minute'], destination, stopping_pattern_audio, following, following_destination, following_pattern)
+        else:
+            write_audio(next_departure['platform_number'], time_parts['hour'], time_parts['minute'], destination, stopping_pattern_audio)
+
+    return {
+        "td": train_descriptor,
+        "scheduled_departure_utc": scheduled_departure_utc,
+        "estimated_departure_utc": estimated_departure_utc,
+        "destination": destination,
+        "stopping_pattern": stopping_pattern_text,
+        "stopping_pattern_audio": stopping_pattern_audio,
+        "stopping_type": stopping_type,
+        "scheduled_hour": time_parts['hour'],
+        "scheduled_minute": time_parts['minute'],
+        "platform": next_departure['platform_number']
+    }
+
 def get_next_departure_for_platform(station_name, platform):
     stopGTFSID = stations[station_name]
-    url = '/v3/departures/route_type/0/stop/{}?gtfs=true&max_results=5&expand=run&expand=route'.format(stopGTFSID)
+    url = '/v3/departures/route_type/0/stop/{}?gtfs=true&max_results=15&expand=run&expand=route&include_cancelled=true'.format(stopGTFSID)
     departures_payload = ptv_api(url, dev_id, key)
     if 'departures' not in departures_payload:
         print(departures_payload)
@@ -216,50 +290,22 @@ def get_next_departure_for_platform(station_name, platform):
 
     if len(platform_departures):
         next_departure = platform_departures[0]
+
         run_data = runs[str(next_departure['run_id'])]
-        vehicle_descriptor = run_data['vehicle_descriptor'] or { 'id': None }
-        train_descriptor = vehicle_descriptor['id']
-        route_name = routes[str(next_departure['route_id'])]['route_name']
 
-        is_up = next_departure['direction_id'] == 1
-        if next_departure['route_id'] == '13':
-            is_up = next_departure['direction_id'] == 5
+        if run_data['status'] == 'cancelled':
+            departure_platform = next_departure['platform_number']
+            following_departure = platform_departures[1]
 
-        stopping_pattern = get_stopping_pattern(next_departure['run_id'], is_up, station_name)
-        stopping_pattern_data = generate_stopping_pattern(route_name, stopping_pattern, is_up, station_name)
+            runs[str(following_departure['run_id'])]['status'] = '' # take it as running no matter what
+            data = process_departure(following_departure, runs, routes, station_name)
 
-        stopping_pattern_info = stopping_pattern_data['text']
-        stopping_pattern_audio = stopping_pattern_data['audio']
+            cancelled_departure = process_departure(next_departure, runs, routes, station_name, following=following_departure, following_destination=data['destination'], following_pattern=data['stopping_pattern_audio'])
+            data['cancelled'] = cancelled_departure
 
-        stopping_pattern_text = stopping_pattern_info['stopping_pattern']
-        stopping_type = stopping_pattern_info['stopping_type']
-
-        scheduled_departure_utc = next_departure['scheduled_departure_utc']
-        estimated_departure_utc = next_departure['estimated_departure_utc']
-
-        if time_diff(scheduled_departure_utc) > 120:
-            raise NoTrains('NO TRAINS DEPART_FROM THIS PLATFORM')
-
-        destination = stopping_pattern[-1]
-
-        if is_up and 'Parliament' in stopping_pattern and station_name not in city_loop_stations:
-            destination = 'City Loop'
-
-        if generate_audio:
-            time_parts = break_time(scheduled_departure_utc)
-            write_audio(next_departure['platform_number'], time_parts['hour'], time_parts['minute'], destination, stopping_pattern_audio)
-
-        return {
-            "td": train_descriptor,
-            "scheduled_departure_utc": scheduled_departure_utc,
-            "estimated_departure_utc": estimated_departure_utc,
-            "destination": destination,
-            "stopping_pattern": stopping_pattern_text,
-            "stopping_type": stopping_type,
-            "scheduled_hour": time_parts['hour'],
-            "scheduled_minute": time_parts['minute'],
-            "platform": next_departure['platform_number']
-        }
+            return data
+        else:
+            return process_departure(next_departure, runs, routes, station_name)
 
     elif len(rrb_departures):
         raise NoTrains('NO TRAINS OPERATING_REPLACEMENT BUSES|H1^_ALTERNATIVE TRANSPORT HAS BEEN ARRANGED, CHECK POSTER DISPLAY CASES')
@@ -325,6 +371,16 @@ def get_pids_data(station_name, platform):
 
     msg = DisplayMessage.from_str(pids_string).to_bytes()
 
+    minutes_to_dep = time_diff(actual_departure_utc)
+    scheduled_minutes_to_dep = time_diff(scheduled_departure_utc)
+
+    service_id = scheduled_departure + destination
+
+    if 'cancelled' in next_departure:
+        scheduled_minutes_to_dep = time_diff(next_departure['cancelled']['scheduled_departure_utc'])
+        minutes_to_dep = scheduled_minutes_to_dep
+        service_id = format_time(next_departure['cancelled']['scheduled_departure_utc']) + next_departure['cancelled']['destination']
+
     return {
         "data": fix_right_justification(msg),
         "data_type": "auto",
@@ -333,10 +389,11 @@ def get_pids_data(station_name, platform):
         "actual": time_to_departure,
         "pattern": stopping_pattern,
         "type": bottom_row,
-        "minutes_to_dep": time_diff(actual_departure_utc),
-        "scheduled_minutes_to_dep": time_diff(scheduled_departure_utc),
+        "minutes_to_dep": minutes_to_dep,
+        "scheduled_minutes_to_dep": scheduled_minutes_to_dep,
         "scheduled_hour": next_departure['scheduled_hour'],
         "scheduled_minute": next_departure['scheduled_minute'],
         "platform": int(next_departure['platform']),
-        "raw_dest": raw_destination
+        "raw_dest": raw_destination,
+        "service_id": service_id
     }
