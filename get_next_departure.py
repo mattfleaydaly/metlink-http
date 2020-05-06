@@ -389,6 +389,7 @@ def get_pids_data(station_name, platform):
         "actual": time_to_departure,
         "pattern": stopping_pattern,
         "type": bottom_row,
+        "next_minutes_to_dep": time_diff(actual_departure_utc),
         "minutes_to_dep": minutes_to_dep,
         "scheduled_minutes_to_dep": scheduled_minutes_to_dep,
         "scheduled_hour": next_departure['scheduled_hour'],
