@@ -198,7 +198,8 @@ def main():
         global current_data, services_played
 
         minutes_to_dep = current_data['minutes_to_dep']
-        train_delay = current_data['minutes_to_dep'] - current_data['scheduled_minutes_to_dep']
+        scheduled_minutes_to_dep = current_data['scheduled_minutes_to_dep']
+        train_delay = minutes_to_dep - scheduled_minutes_to_dep
         service_id = current_data['service_id']
 
         if train_delay < 5 or minutes_to_dep < 2:
@@ -211,7 +212,9 @@ def main():
                 play_audio(__dirname + '/output.wav')
                 services_played = services_played[-20:]
         else:
-            sleep(120)
+            remaining = scheduled_minutes_to_dep * 60
+            if remaining > 0:
+                sleep(remaining)
             if service_id not in delays_played:
                 delays_played.append(service_id)
 
