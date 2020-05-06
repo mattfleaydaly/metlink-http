@@ -283,7 +283,7 @@ def get_next_departure_for_platform(station_name, platform):
 
     platform_departures = departures
     if platform != 'all':
-        platform_departures = list(filter(lambda departure: departure['platform_number'] == platform, departures))
+        platform_departures = list(filter(lambda departure: departure['platform_number'] == platform and departure['platform_number'] != 'RRB', departures))
     rrb_departures = list(filter(lambda departure: departure['platform_number'] == 'RRB', departures))
 
     platform_departures.sort(key=lambda departure: date(departure['scheduled_departure_utc']))
