@@ -102,6 +102,7 @@ def main():
 
     try:
         pid = PID.for_device(args['--serial'])
+        pid.send('Ready...')
     except Exception as e:
         print('metlinkpid-http: {}'.format(e))
 
@@ -278,6 +279,17 @@ def main():
 
 
     Thread(target=ping).start()
+
+    with pid_lock:
+      try:
+          pid.send('Ready...')
+          def clear():
+            sleep(5)
+            pids.send('  ')
+          Thread(target=clear).start()
+      except Exception as e:
+          print('metlinkpid-http: {}'.format(e), file=stderr)
+
     try:
         serve(app, listen=args['--http'], threads=1)
     finally:
