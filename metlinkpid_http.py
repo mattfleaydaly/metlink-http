@@ -285,7 +285,7 @@ def main():
           pid.send('Ready...')
           def clear():
             sleep(5)
-            pids.send('  ')
+            pid.send('  ')
           Thread(target=clear).start()
       except Exception as e:
           print('metlinkpid-http: {}'.format(e), file=stderr)
