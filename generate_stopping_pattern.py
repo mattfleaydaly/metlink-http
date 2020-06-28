@@ -75,6 +75,8 @@ def get_route_stops(route_name):
         return lines['Mernda']
     if route_name == 'Hurstbridge':
         return lines['Hurstbridge']
+    if route_name == 'City Loop':
+        return lines['City Loop']
 
 def get_express_sections(stopping_pattern, relevant_stops):
     express_parts = []

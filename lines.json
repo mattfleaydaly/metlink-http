@@ -634,5 +634,16 @@
     "Mount Waverley",
     "Syndal",
     "Glen Waverley"
+  ],
+  "City Loop": [
+    "Parliament",
+    "Melbourne Central",
+    "Flagstaff",
+    "Southern Cross",
+    "Flinders Street",
+    "Southern Cross",
+    "Flagstaff",
+    "Melbourne Central",
+    "Parliament"
   ]
 }

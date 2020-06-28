@@ -248,6 +248,9 @@ def process_departure(next_departure, runs, routes, station_name, following=None
     if is_up and 'Parliament' in stopping_pattern and station_name not in city_loop_stations:
         destination = 'City Loop'
 
+    if route_name == 'City Loop':
+        destination = 'City Loop'
+
     if generate_audio:
         time_parts = break_time(scheduled_departure_utc)
         if run_data['status'] == 'cancelled':

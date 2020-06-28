@@ -141,7 +141,6 @@ def main():
         if current_timeout:
             current_timeout.kill()
 
-
         with pid_lock:
             try:
                 pid.send('  _  ')
