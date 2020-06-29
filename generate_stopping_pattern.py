@@ -258,18 +258,28 @@ def generate_audio_stopping_pattern(express_parts, relevant_stops, destination, 
         first_express_stop = express_sector[0]
         last_express_stop = express_sector[-1]
 
-        prev_stop = relevant_stops[relevant_stops.index(first_express_stop) - 1]
-        next_stop = relevant_stops[relevant_stops.index(last_express_stop) + 1]
+        prev_stop_index = relevant_stops.index(first_express_stop) - 1
+        next_stop_index = relevant_stops.index(last_express_stop) - 1
+
+        prev_stop = relevant_stops[prev_stop_index]
+        next_stop = relevant_stops[next_stop_index]
 
         if last_stop:
+            last_stop_index = relevant_stops.index(last_stop)
+
             if i == len(express_parts) - 1 and next_stop == destination:
                 pattern.append('item/item48') # then
-                pattern.append('item/item10') # running express from
+                if last_stop_index != prev_stop_index: # only push new running exp from if its not A-B-C express, but SAS A-B, EXP B-C type
+                    pattern.append('item/item10') # running express from
                 pattern.append('station/flt/{}_flt'.format(station_codes[prev_stop])) # STN
                 pattern.append('station/phr/{}_phr'.format(station_codes[next_stop])) # to STN
             elif last_stop == prev_stop:
                 pattern.append('station/flt/{}_flt'.format(station_codes[prev_stop])) # STN
                 pattern.append('station/phr/{}_phr'.format(station_codes[next_stop])) # to STN
+            elif last_stop_index + 1 == prev_stop_index: # if EXP A-B, EXP C-D, then don't add a SAS bit
+                pattern.append('item/item10')
+                pattern.append('station/flt/{}_flt'.format(station_codes[prev_stop]))
+                pattern.append('station/phr/{}_phr'.format(station_codes[next_stop]))
             else:
                 pattern.append('item/item42') # stopping all stations
                 pattern.append('station/phr/{}_phr'.format(station_codes[prev_stop])) # to STN
