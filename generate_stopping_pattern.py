@@ -174,14 +174,21 @@ def generate_text_stopping_pattern(express_parts, relevant_stops, destination, v
         first_express_stop = express_sector[0]
         last_express_stop = express_sector[-1]
 
-        prev_stop = relevant_stops[relevant_stops.index(first_express_stop) - 1]
-        next_stop = relevant_stops[relevant_stops.index(last_express_stop) + 1]
+        prev_stop_index = relevant_stops.index(first_express_stop) - 1
+        next_stop_index = relevant_stops.index(last_express_stop) + 1
+
+        prev_stop = relevant_stops[prev_stop_index]
+        next_stop = relevant_stops[next_stop_index]
 
         if last_stop:
+            last_stop_index = relevant_stops.index(last_stop)
+
             if i == len(express_parts) - 1 and next_stop == destination:
                 texts.append('then Runs Express from {} to {}'.format(prev_stop, next_stop))
             elif last_stop == prev_stop:
                 texts.append('{} to {}'.format(prev_stop, next_stop))
+            elif last_stop_index + 1 == prev_stop_index:
+                texts.append('Runs Express from {} to {}'.format(prev_stop, next_stop))
             else:
                 texts.append('Stops All Stations from {} to {}'.format(last_stop, prev_stop))
                 texts.append('Runs Express from {} to {}'.format(prev_stop, next_stop))
