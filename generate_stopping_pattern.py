@@ -259,7 +259,7 @@ def generate_audio_stopping_pattern(express_parts, relevant_stops, destination, 
         last_express_stop = express_sector[-1]
 
         prev_stop_index = relevant_stops.index(first_express_stop) - 1
-        next_stop_index = relevant_stops.index(last_express_stop) - 1
+        next_stop_index = relevant_stops.index(last_express_stop) + 1
 
         prev_stop = relevant_stops[prev_stop_index]
         next_stop = relevant_stops[next_stop_index]
