@@ -359,7 +359,7 @@ def get_pids_data(station_name, platform):
     if destination == 'SOUTHERN CROSS':
         destination = 'STHN CROSS'
     if destination == 'UPPER FERNTREE GULLY':
-        destination = 'UPPER F.T.G'
+        destination = 'UPPER FT GULLY'
 
     is_all_except = 'All Except' in stopping_pattern
 
