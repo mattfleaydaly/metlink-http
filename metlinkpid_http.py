@@ -269,7 +269,7 @@ def main():
                         pid.send(pids_string)
                     except Exception as e:
                         print('metlinkpid-http: {}'.format(e), file=stderr)
-                        # print('Tried to send', pids_string)
+                        print('Tried to send', pids_string)
                 last_string = pids_string
             else:
                 print('Nothing to do, skipping')

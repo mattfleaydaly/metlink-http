@@ -218,13 +218,13 @@ def transform(departure):
 
     return departure
 
-def process_departure(next_departure, runs, routes, station_name, following=None, following_destination=None, following_pattern=None):
+def process_departure(next_departure, runs, routes, directions, station_name, following=None, following_destination=None, following_pattern=None):
     run_data = runs[str(next_departure['run_id'])]
     vehicle_descriptor = run_data['vehicle_descriptor'] or { 'id': None }
     train_descriptor = vehicle_descriptor['id']
     route_name = routes[str(next_departure['route_id'])]['route_name']
 
-    is_up = next_departure['direction_id'] == 1
+    is_up = 'City' in directions[str(next_departure['direction_id'])]['direction_name']
     if next_departure['route_id'] == '13':
         is_up = next_departure['direction_id'] == 5
 
@@ -251,8 +251,9 @@ def process_departure(next_departure, runs, routes, station_name, following=None
     if route_name == 'City Loop':
         destination = 'City Loop'
 
+    time_parts = break_time(scheduled_departure_utc)
+
     if generate_audio:
-        time_parts = break_time(scheduled_departure_utc)
         if run_data['status'] == 'cancelled':
             write_cancelled_audio(next_departure['platform_number'], time_parts['hour'], time_parts['minute'], destination, stopping_pattern_audio, following, following_destination, following_pattern)
         else:
@@ -273,14 +274,16 @@ def process_departure(next_departure, runs, routes, station_name, following=None
 
 def get_next_departure_for_platform(station_name, platform):
     stopGTFSID = stations[station_name]
-    url = '/v3/departures/route_type/0/stop/{}?gtfs=true&max_results=15&expand=run&expand=route&include_cancelled=true'.format(stopGTFSID)
+    url = '/v3/departures/route_type/0/stop/{}?gtfs=true&max_results=15&expand=run&expand=route&expand=direction&include_cancelled=true'.format(stopGTFSID)
     departures_payload = ptv_api(url, dev_id, key)
     if 'departures' not in departures_payload:
         print(departures_payload)
         raise Exception(departures_payload)
+
     departures = departures_payload['departures']
     runs = departures_payload['runs']
     routes = departures_payload['routes']
+    directions = departures_payload['directions']
 
     departures = list(map(transform, departures))
 
@@ -301,14 +304,14 @@ def get_next_departure_for_platform(station_name, platform):
             following_departure = platform_departures[1]
 
             runs[str(following_departure['run_id'])]['status'] = '' # take it as running no matter what
-            data = process_departure(following_departure, runs, routes, station_name)
+            data = process_departure(following_departure, runs, routes, directions, station_name)
 
-            cancelled_departure = process_departure(next_departure, runs, routes, station_name, following=following_departure, following_destination=data['destination'], following_pattern=data['stopping_pattern_audio'])
+            cancelled_departure = process_departure(next_departure, runs, routes, directions, station_name, following=following_departure, following_destination=data['destination'], following_pattern=data['stopping_pattern_audio'])
             data['cancelled'] = cancelled_departure
 
             return data
         else:
-            return process_departure(next_departure, runs, routes, station_name)
+            return process_departure(next_departure, runs, routes, directions, station_name)
 
     elif len(rrb_departures):
         raise NoTrains('NO TRAINS OPERATING_REPLACEMENT BUSES|H1^_ALTERNATIVE TRANSPORT HAS BEEN ARRANGED, CHECK POSTER DISPLAY CASES')
