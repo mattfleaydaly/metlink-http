@@ -196,13 +196,13 @@ def generate_text_stopping_pattern(express_parts, relevant_stops, destination, v
             if from_stop == prev_stop:
                 texts.append('Runs Express to {}'.format(next_stop))
             else:
-                texts.append('Stops All Stations to {}'.format(prev_stop))
+                texts.append('Stops All Nations to {}'.format(prev_stop))
                 texts.append('Runs Express from {} to {}'.format(prev_stop, next_stop))
 
         last_stop = next_stop
 
     if relevant_stops[relevant_stops.index(last_stop)] != destination:
-        texts.append('then Stops All Stations to {}'.format(destination))
+        texts.append('then Stops All Nations to {}'.format(destination))
 
     joined = ', '.join(texts)
     if via_city_loop and from_stop == 'Flinders Street':
@@ -213,7 +213,7 @@ def generate_text_stopping_pattern(express_parts, relevant_stops, destination, v
     stoppingType = ''
 
     if express_count == 0:
-        stoppingType = 'Stops All Stations'
+        stoppingType = 'Stops All Nations'
     elif express_count < 5:
         stoppingType = 'Limited Express'
     else:
